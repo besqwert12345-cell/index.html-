@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ذاكر AI - النسخة الكاملة</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+<style>
+  /* تنسيقات الموقع الأساسية */
+  :root { --ink: #0f0e17; --paper: #fffcf2; --accent: #e53170; --teal: #0d7377; --pro: #7c3aed; }
+  body { font-family: 'Cairo', sans-serif; background: var(--paper); color: var(--ink); margin: 0; padding: 0; }
+  .main-app { padding: 20px; max-width: 800px; margin: auto; }
+  .card { background: white; border: 2px solid var(--ink); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 4px 4px 0 var(--ink); }
+  .forum-issue-card { border: 2px solid var(--ink); padding: 15px; margin-bottom: 10px; border-radius: 10px; background: #fff; }
+  .btn-primary { background: var(--accent); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+  textarea { width: 100%; height: 100px; border: 2px solid #ccc; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div class="main-app">
+  <header><h1>ذاكر AI - منتدى الطلاب</h1></header>
+
+  <div class="card" id="panel-forum">
+    <div class="card-label">شارك مشكلتك</div>
+    <textarea id="forumIssueText" placeholder="اكتب المشكلة هنا..."></textarea>
+    <div class="options-row">
+      <select id="forumIssueTag">
+        <option value="tech">⚙️ مشكلة تقنية</option>
+        <option value="pay">💳 الدفع والاشتراك</option>
+      </select>
+      <button class="btn-primary" id="btnPostIssue">نشر في المنتدى 🚀</button>
+    </div>
+    <div id="forumIssuesContainer" style="margin-top: 20px;">
+      <p>جاري تحميل المشاكل...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- 1. إعداد السيرفر (Firebase Config) ---
+// **قم بوضع بياناتك هنا بعد إنشاء المشروع في Firebase**
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "123456",
+  appId: "1:123456:web:abcd"
+};
+
+// تهيئة الاتصال بالسيرفر
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// --- 2. دالة جلب البيانات من السيرفر (قاعدة البيانات) ---
+function loadForumIssues() {
+  const container = document.getElementById('forumIssuesContainer');
+  
+  // الاستماع اللحظي (سيرفر مباشر)
+  db.collection("issues").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+    container.innerHTML = "";
+    snapshot.forEach(doc => {
+      const issue = doc.data();
+      const div = document.createElement('div');
+      div.className = "forum-issue-card";
+      div.innerHTML = `
+        <div style="font-weight:bold; color:var(--teal)">👤 طالب</div>
+        <div style="font-size: 0.8rem; background: #eee; display:inline-block; padding:2px 5px;">${issue.tagText}</div>
+        <div style="margin-top:10px;">${issue.body}</div>
+      `;
+      container.appendChild(div);
+    });
+  });
+}
+
+// --- 3. دالة إرسال البيانات للسيرفر ---
+document.getElementById('btnPostIssue').addEventListener('click', async () => {
+  const text = document.getElementById('forumIssueText').value;
+  const tag = document.getElementById('forumIssueTag').value;
+  
+  if (text.length < 5) return alert("اكتب تفاصيل أكثر!");
+
+  try {
+    // إرسال البيانات إلى مجموعة 'issues' في السيرفر
+    await db.collection("issues").add({
+      body: text,
+      tagText: tag === 'tech' ? 'مشكلة تقنية' : 'الدفع والاشتراك',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    document.getElementById('forumIssueText').value = ""; // تفريغ الحقل بعد النجاح
+    alert("تم النشر بنجاح!");
+  } catch (e) {
+    console.error("خطأ:", e);
+    alert("حدث خطأ في الاتصال بالسيرفر");
+  }
+});
+
+// بدء تشغيل الاتصال عند فتح الصفحة
+window.onload = () => {
+  loadForumIssues();
+};
+</script>
+</body>
+</html>
